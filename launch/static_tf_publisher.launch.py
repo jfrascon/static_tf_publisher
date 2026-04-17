@@ -20,9 +20,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'params_file',
                 default_value=os.path.join(
-                    get_package_share_directory('static_tf_publisher'),
-                    'config',
-                    'example_params.yaml',
+                    get_package_share_directory('static_tf_publisher'), 'config', 'example_params.yaml'
                 ),
                 description='Base YAML with ros__parameters',
             ),
@@ -39,9 +37,7 @@ def generate_launch_description() -> LaunchDescription:
                 description=rlh.LOGGING_OPTIONS_DESC,
             ),
             DeclareLaunchArgument(
-                'node_options',
-                default_value=rlh.default_node_options_str(),
-                description=rlh.NODE_OPTIONS_DESC,
+                'node_options', default_value=rlh.default_node_options_str(), description=rlh.NODE_OPTIONS_DESC
             ),
             OpaqueFunction(function=launch_static_tf_publisher_node),
         ]

@@ -115,9 +115,7 @@ def parse_frames(frames_parameters: Mapping[str, Any]) -> list[FrameSpec]:
         if not isinstance(pose_mapping, Mapping):
             raise ValueError(f"Frame '{child_frame}' must define one 'pose' mapping.")
 
-        missing_components: list[str] = [
-            component for component in POSE_COMPONENTS if component not in pose_mapping
-        ]
+        missing_components: list[str] = [component for component in POSE_COMPONENTS if component not in pose_mapping]
 
         if missing_components:
             raise ValueError(f"Frame '{child_frame}' is missing pose components: {missing_components}.")

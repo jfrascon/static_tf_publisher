@@ -26,10 +26,5 @@ def run_bash(command: str, *, timeout: int = 60) -> subprocess.CompletedProcess[
     bash_command = f'source "{ros_setup}" && source "{WORKSPACE_DIR / "install" / "setup.bash"}" && {command}'
 
     return subprocess.run(
-        ['bash', '-lc', bash_command],
-        cwd=WORKSPACE_DIR,
-        text=True,
-        capture_output=True,
-        timeout=timeout,
-        check=False,
+        ['bash', '-lc', bash_command], cwd=WORKSPACE_DIR, text=True, capture_output=True, timeout=timeout, check=False
     )

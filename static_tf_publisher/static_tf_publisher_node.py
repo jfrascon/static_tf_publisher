@@ -11,6 +11,7 @@ from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 
 from static_tf_publisher.frame_config import FrameSpec, parse_frames
 
+
 class FramePublisherNode(Node):
     """Publish all configured static transforms at startup and keep the node alive."""
 
@@ -25,8 +26,7 @@ class FramePublisherNode(Node):
         if not frame_specs:
             # An empty configuration is allowed. Warn and exit without spinning forever.
             self.get_logger().warning(
-                "No frames were configured under 'frames'. The node will exit without publishing "
-                'static transforms.'
+                "No frames were configured under 'frames'. The node will exit without publishing static transforms."
             )
             self._should_exit = True
             return
