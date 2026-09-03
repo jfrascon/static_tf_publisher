@@ -130,3 +130,8 @@ source install/setup.bash
 colcon test --merge-install --packages-select static_tf_publisher
 colcon test-result --test-result-base build/static_tf_publisher --verbose
 ```
+
+## License
+
+This package is distributed under the Apache License 2.0.
+See [LICENSE](LICENSE).
