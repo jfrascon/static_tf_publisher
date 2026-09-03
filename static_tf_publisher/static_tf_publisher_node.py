@@ -3,9 +3,9 @@ from __future__ import annotations
 import math
 from typing import Iterable
 
-import rclpy
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import TransformStamped
+import rclpy
 from rclpy.node import Node
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 
@@ -16,19 +16,24 @@ class FramePublisherNode(Node):
     """Publish all configured static transforms at startup and keep the node alive."""
 
     def __init__(self) -> None:
-        super().__init__('static_tf_publisher', automatically_declare_parameters_from_overrides=True)
+        super().__init__(
+            'static_tf_publisher', automatically_declare_parameters_from_overrides=True
+        )
         self._should_exit: bool = False
         self._transforms: list[TransformStamped] = []
         self._broadcaster = StaticTransformBroadcaster(self)
 
         # Parse the full frame set once during startup. Invalid entries abort startup.
         frame_specs: list[FrameSpec] = parse_frames(self._get_frame_parameters())
+
         if not frame_specs:
             # An empty configuration is allowed. Warn and exit without spinning forever.
             self.get_logger().warning(
-                "No frames were configured under 'frames'. The node will exit without publishing static transforms."
+                "No frames were configured under 'frames'. "
+                'The node will exit without publishing static transforms.'
             )
             self._should_exit = True
+
             return
 
         # Static transforms are published once and then kept available by the node.
@@ -50,6 +55,7 @@ class FramePublisherNode(Node):
             parameter_name: getattr(parameter, 'value', parameter)
             for parameter_name, parameter in self.get_parameters_by_prefix('frames').items()
         }
+
         return frame_parameters
 
     @property
@@ -69,7 +75,9 @@ class FramePublisherNode(Node):
         transform.transform.translation.z = frame_spec.z
 
         # TF messages use quaternions, so convert the configured roll-pitch-yaw first.
-        qx, qy, qz, qw = self._quaternion_from_rpy(frame_spec.roll, frame_spec.pitch, frame_spec.yaw)
+        qx, qy, qz, qw = self._quaternion_from_rpy(
+            frame_spec.roll, frame_spec.pitch, frame_spec.yaw
+        )
         transform.transform.rotation.x = qx
         transform.transform.rotation.y = qy
         transform.transform.rotation.z = qz
@@ -78,7 +86,9 @@ class FramePublisherNode(Node):
         return transform
 
     @staticmethod
-    def _quaternion_from_rpy(roll: float, pitch: float, yaw: float) -> tuple[float, float, float, float]:
+    def _quaternion_from_rpy(
+        roll: float, pitch: float, yaw: float
+    ) -> tuple[float, float, float, float]:
         """Convert one roll-pitch-yaw triple in radians into one quaternion."""
         half_roll = roll * 0.5
         half_pitch = pitch * 0.5
@@ -108,8 +118,20 @@ def main(args: list[str] | None = None) -> None:
         # Exit immediately when startup determined there is nothing to publish.
         if node.should_exit:
             return
-        rclpy.spin(node)
+
+        try:
+            rclpy.spin(node)
+        except KeyboardInterrupt:
+            pass
     finally:
         if node is not None:
-            node.destroy_node()
-        rclpy.shutdown()
+            try:
+                node.destroy_node()
+            except KeyboardInterrupt:
+                pass
+
+        try:
+            if rclpy.ok():
+                rclpy.shutdown()
+        except KeyboardInterrupt:
+            pass

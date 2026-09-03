@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+import math
 from numbers import Real
 from typing import Any
 
@@ -115,10 +116,14 @@ def parse_frames(frames_parameters: Mapping[str, Any]) -> list[FrameSpec]:
         if not isinstance(pose_mapping, Mapping):
             raise ValueError(f"Frame '{child_frame}' must define one 'pose' mapping.")
 
-        missing_components: list[str] = [component for component in POSE_COMPONENTS if component not in pose_mapping]
+        missing_components: list[str] = [
+            component for component in POSE_COMPONENTS if component not in pose_mapping
+        ]
 
         if missing_components:
-            raise ValueError(f"Frame '{child_frame}' is missing pose components: {missing_components}.")
+            raise ValueError(
+                f"Frame '{child_frame}' is missing pose components: {missing_components}."
+            )
 
         frame_specs.append(
             FrameSpec(
@@ -133,14 +138,24 @@ def parse_frames(frames_parameters: Mapping[str, Any]) -> list[FrameSpec]:
             )
         )
 
+    _validate_acyclic_frame_graph(frame_specs)
     return frame_specs
 
 
 def _as_float(child_frame: str, component_name: str, value: Any) -> float:
     if not isinstance(value, Real) or isinstance(value, bool):
-        raise ValueError(f"Pose component '{component_name}' for frame '{child_frame}' must be numeric.")
+        raise ValueError(
+            f"Pose component '{component_name}' for frame '{child_frame}' must be numeric."
+        )
 
-    return float(value)
+    numeric_value = float(value)
+
+    if not math.isfinite(numeric_value):
+        raise ValueError(
+            f"Pose component '{component_name}' for frame '{child_frame}' must be finite."
+        )
+
+    return numeric_value
 
 
 def _validate_non_empty_string(value: Any, label: str) -> str:
@@ -148,3 +163,21 @@ def _validate_non_empty_string(value: Any, label: str) -> str:
         raise ValueError(f'{label} must be a non-empty string.')
 
     return value.strip()
+
+
+def _validate_acyclic_frame_graph(frame_specs: list[FrameSpec]) -> None:
+    """Reject cycles formed entirely by child frames configured in this package."""
+    parent_by_child = {frame.child_frame: frame.parent_frame for frame in frame_specs}
+
+    for start_frame in parent_by_child:
+        visited: list[str] = []
+        current_frame = start_frame
+
+        while current_frame in parent_by_child:
+            if current_frame in visited:
+                cycle_start = visited.index(current_frame)
+                cycle = [*visited[cycle_start:], current_frame]
+                raise ValueError(f'Static TF configuration contains a cycle: {" -> ".join(cycle)}.')
+
+            visited.append(current_frame)
+            current_frame = parent_by_child[current_frame]

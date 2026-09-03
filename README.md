@@ -1,36 +1,58 @@
 # static_tf_publisher
 
-`static_tf_publisher` publishes static transforms into the TF tree from a ROS 2 configuration.
+`static_tf_publisher` publishes a configured set of static transforms on ROS 2 TF.
+Each transform defines the pose of one child frame with respect to one parent frame.
+The node publishes the complete set once through `StaticTransformBroadcaster` and remains alive so late TF subscribers can receive the transient-local data.
 
-The package expects one collection of child frames. For each child frame, the configuration defines:
-- `parent_frame`
-- `pose.x`
-- `pose.y`
-- `pose.z`
-- `pose.R`
-- `pose.P`
-- `pose.Y`
+## Frame model
 
-The pose is always interpreted as the pose of the child frame with respect to its parent frame.
+Each child frame requires:
 
-## Usage
+- `parent_frame`: parent frame ID.
+- `pose.x`, `pose.y` and `pose.z`: translation in meters.
+- `pose.R`, `pose.P` and `pose.Y`: roll, pitch and yaw in radians.
 
-The package launch file accepts two input forms:
-- `params_file`: YAML file with `ros__parameters`
-- `frames_inline`: inline JSON object
+Every pose component must be numeric and finite.
+A child frame cannot be its own parent.
+The configured child-to-parent relationships cannot form a cycle.
+A parent may refer to a frame published by another component.
 
-Both input forms can be used at the same time. The node first loads the frames from `params_file` and then applies the frames received through `frames_inline`.
+An empty frame set is valid.
+The node logs a warning and exits without publishing when no frames are configured.
 
-This means the command line has higher priority than the parameter file. If the same child frame is defined in both places, the definition from `frames_inline` overrides the one from `params_file`.
+## Launch contract
 
-### Example with `params_file`
+The launch file exposes:
 
-The following YAML file is enough to publish two static transforms:
+| Argument | Default | Responsibility |
+| --- | --- | --- |
+| `namespace` | `robot` | Namespace where the node is launched. |
+| `params_file` | empty | Optional YAML file containing frame parameters. |
+| `params_file_allow_substs` | `False` | Allow ROS launch substitutions inside the YAML file. |
+| `frames_inline` | empty | Optional JSON frame definitions applied after the YAML file. |
+| `use_sim_time` | `False` | Select the ROS simulation clock. |
+| `node_args` | standard JSON | Configure supported `launch_ros.actions.Node` arguments. |
+
+The standard `node_args` value is:
+
+```json
+{"output":"both","ros_arguments":["--log-level","info"]}
+```
+
+The YAML file owns the base frame set.
+`frames_inline` is applied afterward and therefore replaces individual frames with the same child name.
+`use_sim_time` is appended last because clock selection belongs to the launch environment.
+
+The obsolete `node_remappings`, `node_logging_options` and `node_options` arguments are no longer supported.
+Use `node_args` for node name, output, remappings, respawn behavior and ROS arguments.
+
+## YAML configuration
+
+The installed example is `config/example_params.yaml`:
 
 ```yaml
 /**/static_tf_publisher:
   ros__parameters:
-    use_sim_time: false
     frames:
       camera_link:
         parent_frame: map
@@ -53,43 +75,58 @@ The following YAML file is enough to publish two static transforms:
           Y: 1.57
 ```
 
-Save it as `/tmp/static_tf_publisher_example.yaml` and launch the node with:
+Parameter files should not define `use_sim_time` because the launch argument is authoritative.
+
+Launch the installed example with:
 
 ```bash
-ros2 launch static_tf_publisher static_tf_publisher.launch.py params_file:=/tmp/static_tf_publisher_example.yaml
+ros2 launch static_tf_publisher static_tf_publisher.launch.py \
+  params_file:="$(ros2 pkg prefix static_tf_publisher)/share/static_tf_publisher/config/example_params.yaml"
 ```
 
-This example publishes these two static transforms:
+This publishes:
+
 - `map -> camera_link`
 - `map -> charger_pose`
 
-### Example with `frames_inline`
+## Inline configuration
 
-This variant skips the YAML file and defines the full frame set directly on the command line:
-
-```bash
-ros2 launch static_tf_publisher static_tf_publisher.launch.py frames_inline:='{"camera_link":{"parent_frame":"map","pose":{"x":0.0,"y":0.0,"z":1.0,"R":0.0,"P":0.0,"Y":0.0}},"charger_pose":{"parent_frame":"map","pose":{"x":2.0,"y":3.0,"z":0.0,"R":0.0,"P":0.0,"Y":1.57}}}'
-```
-
-### Expected TF result
-
-The following `rqt_tf_tree` capture shows the result of running either of the two examples above:
-
-<img src="docs/frames.png" alt="TF tree published by static_tf_publisher" width="50%">
-
-### Example with `params_file` and `frames_inline`
-
-The following command mixes both input forms. The base frame set comes from the YAML above, and the command line adds or overrides frames through `frames_inline`.
+`frames_inline` accepts one JSON object keyed by child frame:
 
 ```bash
-ros2 launch static_tf_publisher static_tf_publisher.launch.py params_file:=/tmp/static_tf_publisher_example.yaml frames_inline:='{"conveyor_link":{"parent_frame":"map","pose":{"x":2.0,"y":0.0,"z":1.0,"R":0.0,"P":0.0,"Y":0.0}},"docking_bay":{"parent_frame":"map","pose":{"x":2.0,"y":13.0,"z":0.0,"R":0.0,"P":0.0,"Y":1.57}}}'
+ros2 launch static_tf_publisher static_tf_publisher.launch.py \
+  frames_inline:='{"camera_link":{"parent_frame":"map","pose":{"x":0,"y":0,"z":1,"R":0,"P":0,"Y":0}}}'
 ```
 
-This example shows that:
-- `camera_link` and `charger_pose` come from the parameter file.
-- `conveyor_link` and `docking_bay` come from the command line.
-- If one frame name is repeated in both inputs, the command-line definition wins.
+Every entry must contain exactly `parent_frame` and `pose`.
+The pose must contain exactly `x`, `y`, `z`, `R`, `P` and `Y`.
+Unknown keys are rejected so configuration typos do not disappear silently.
 
-The following `rqt_tf_tree` capture shows the result of combining the parameter file with command-line frames:
+Both input forms may be combined:
 
-<img src="docs/frames_params_cli.png" alt="TF tree published from params file and command line" width="90%">
+```bash
+ros2 launch static_tf_publisher static_tf_publisher.launch.py \
+  params_file:=/absolute/path/to/frames.yaml \
+  frames_inline:='{"camera_link":{"parent_frame":"map","pose":{"x":1,"y":0,"z":1,"R":0,"P":0,"Y":0}}}'
+```
+
+In this example, the inline `camera_link` replaces the complete frame definition loaded from the YAML file.
+
+## TF result
+
+These captures show representative results:
+
+- [Two configured transforms](docs/frames.png)
+- [YAML and inline transforms combined](docs/frames_params_cli.png)
+
+## Build and test
+
+From the workspace root:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+colcon build --merge-install --symlink-install --packages-select static_tf_publisher
+source install/setup.bash
+colcon test --merge-install --packages-select static_tf_publisher
+colcon test-result --test-result-base build/static_tf_publisher --verbose
+```

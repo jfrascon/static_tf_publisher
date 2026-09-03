@@ -1,6 +1,7 @@
 /**/static_tf_publisher:
   ros__parameters:
-    use_sim_time: $(var use_sim_time)
+    # static_tf_publisher.launch.py sets use_sim_time after loading this file.
+    # Do not configure use_sim_time in this file.
     frames:
       camera_link:
         parent_frame: map

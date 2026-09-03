@@ -76,6 +76,22 @@ def test_parse_frames_rejects_non_numeric_pose() -> None:
         )
 
 
+@pytest.mark.parametrize('invalid_value', [float('nan'), float('inf'), float('-inf')])
+def test_parse_frames_rejects_non_finite_pose(invalid_value: float) -> None:
+    with pytest.raises(ValueError, match='must be finite'):
+        parse_frames(
+            {
+                'camera_link.parent_frame': 'map',
+                'camera_link.pose.x': invalid_value,
+                'camera_link.pose.y': 0.0,
+                'camera_link.pose.z': 1.0,
+                'camera_link.pose.R': 0.0,
+                'camera_link.pose.P': 0.0,
+                'camera_link.pose.Y': 0.0,
+            }
+        )
+
+
 def test_parse_frames_rejects_same_parent_and_child() -> None:
     with pytest.raises(ValueError, match='cannot use itself as parent_frame'):
         parse_frames(
@@ -87,5 +103,27 @@ def test_parse_frames_rejects_same_parent_and_child() -> None:
                 'map.pose.R': 0.0,
                 'map.pose.P': 0.0,
                 'map.pose.Y': 0.0,
+            }
+        )
+
+
+def test_parse_frames_rejects_a_cycle_between_configured_frames() -> None:
+    with pytest.raises(ValueError, match='camera_link -> sensor_link -> camera_link'):
+        parse_frames(
+            {
+                'camera_link.parent_frame': 'sensor_link',
+                'camera_link.pose.x': 0.0,
+                'camera_link.pose.y': 0.0,
+                'camera_link.pose.z': 0.0,
+                'camera_link.pose.R': 0.0,
+                'camera_link.pose.P': 0.0,
+                'camera_link.pose.Y': 0.0,
+                'sensor_link.parent_frame': 'camera_link',
+                'sensor_link.pose.x': 0.0,
+                'sensor_link.pose.y': 0.0,
+                'sensor_link.pose.z': 0.0,
+                'sensor_link.pose.R': 0.0,
+                'sensor_link.pose.P': 0.0,
+                'sensor_link.pose.Y': 0.0,
             }
         )
