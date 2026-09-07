@@ -9,7 +9,8 @@ import rclpy
 from rclpy.node import Node
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
 
-from static_tf_publisher.frame_config import FrameSpec, parse_frames
+from static_tf_publisher.frame_config import FrameSpec
+from static_tf_publisher.frame_config import parse_frames
 
 
 class FramePublisherNode(Node):
