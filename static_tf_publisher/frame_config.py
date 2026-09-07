@@ -177,7 +177,9 @@ def _validate_acyclic_frame_graph(frame_specs: list[FrameSpec]) -> None:
             if current_frame in visited:
                 cycle_start = visited.index(current_frame)
                 cycle = [*visited[cycle_start:], current_frame]
-                raise ValueError(f'Static TF configuration contains a cycle: {" -> ".join(cycle)}.')
+                raise ValueError(
+                    f'Static TF configuration contains a cycle: {" -> ".join(cycle)}.'
+                )
 
             visited.append(current_frame)
             current_frame = parent_by_child[current_frame]

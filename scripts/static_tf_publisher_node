@@ -2,6 +2,5 @@
 
 from static_tf_publisher.static_tf_publisher_node import main
 
-
 if __name__ == '__main__':
     main()

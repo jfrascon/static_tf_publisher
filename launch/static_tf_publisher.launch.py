@@ -145,13 +145,16 @@ def _build_inline_frame_parameters(frames_inline: str) -> dict[str, Any]:
         normalized_child_frames.add(child_frame)
 
         if not isinstance(raw_entry, dict):
-            raise ValueError(f"Frame '{child_frame}' in frames_inline must define one JSON object.")
+            raise ValueError(
+                f"Frame '{child_frame}' in frames_inline must define one JSON object."
+            )
 
         unexpected_entry_keys = sorted(set(raw_entry) - {'parent_frame', 'pose'})
 
         if unexpected_entry_keys:
             raise ValueError(
-                f"Frame '{child_frame}' in frames_inline has unknown keys: {unexpected_entry_keys}."
+                f"Frame '{child_frame}' in frames_inline has unknown "
+                f'keys: {unexpected_entry_keys}.'
             )
 
         parent_frame_value: Any = raw_entry.get('parent_frame')

@@ -51,7 +51,12 @@ def test_launch_exposes_the_current_argument_contract() -> None:
 def test_launch_passes_shared_parameters_and_clock_to_the_node(
     allow_substs: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Pass the YAML, inline overrides, and launch-owned clock through separate parameter layers."""
+    """
+    Pass launch parameters to the node in separate layers.
+
+    YAML parameters, inline frame overrides, and the launch-owned clock stay in separate parameter
+    entries.
+    """
     module = _load_launch_module()
     params_file = tmp_path / 'params.yaml'
     params_file.write_text('/**:\n  ros__parameters:\n    frames: {}\n', encoding='utf-8')

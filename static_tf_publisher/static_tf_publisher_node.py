@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 import math
-from typing import Iterable
 
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import TransformStamped

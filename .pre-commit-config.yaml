@@ -103,9 +103,12 @@ repos:
       # scan than the valid but visually flat YAML produced with offset zero.
       - id: pretty-format-yaml
         args: [--autofix, --preserve-quotes, --offset, "2"]
+
   # ROS/ament hooks
   # These hooks use language: system and require the corresponding ament tools
   # to be installed in the development environment.
+  - repo: local
+    hooks:
       - id: ament_lint_cmake
         name: ament_lint_cmake
         description: Check format of CMakeLists.txt files.
